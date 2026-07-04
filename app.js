@@ -60,11 +60,18 @@ window.state = state;
 window.syncStateFromCloud = function(cloudState) {
     if (!cloudState) return;
     
+    // Helper to fix Firebase Realtime Database object-to-array quirk
+    const ensureArray = (data) => {
+        if (Array.isArray(data)) return data;
+        if (data && typeof data === 'object') return Object.values(data);
+        return [];
+    };
+    
     // Update local state arrays safely
-    state.members = cloudState.members || [];
-    state.transactions = cloudState.transactions || [];
-    state.subscriptions = cloudState.subscriptions || [];
-    state.committee = cloudState.committee || [];
+    state.members = ensureArray(cloudState.members);
+    state.transactions = ensureArray(cloudState.transactions);
+    state.subscriptions = ensureArray(cloudState.subscriptions);
+    state.committee = ensureArray(cloudState.committee);
     state.users = cloudState.users || {};
     state.settings = cloudState.settings || {};
     
