@@ -30,8 +30,8 @@ const DEFAULT_USERS = {
 
 // Default App Institution Settings
 const DEFAULT_SETTINGS = {
-    mosque_name: 'বাইতুল মামুর জামে মসজিদ',
-    mosque_address: 'স্থাপিত: ১৯৯৫ খ্রি. | গ্রাম: মধ্যপাড়া, ডাকঘর: বাজারপাড়া',
+    mosque_name: 'পূর্ব মোহাজের পাড়া জামে মসজিদ',
+    mosque_address: 'স্থাপিত: ১৯৯৬ | ঠিকানা: বরইতলী, চকরিয়া, কক্সবাজার।',
     logo_base64: '', // Base64 Data URL for logo
     bank_account_no: '',
     initial_bank_balance: 0,
@@ -328,6 +328,12 @@ function loadState() {
     const localSettings = localStorage.getItem('mosque_settings');
     if (localSettings) {
         state.settings = JSON.parse(localSettings);
+        
+        // Force update to new requested name if it matches old defaults
+        if (state.settings.mosque_name === 'বাইতুল মামুর জামে মসজিদ' || !state.settings.mosque_name) {
+            state.settings.mosque_name = DEFAULT_SETTINGS.mosque_name;
+            state.settings.mosque_address = DEFAULT_SETTINGS.mosque_address;
+        }
     } else {
         state.settings = { ...DEFAULT_SETTINGS };
         localStorage.setItem('mosque_settings', JSON.stringify(state.settings));
