@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mosque-app-cache-v1';
+const CACHE_NAME = 'mosque-app-cache-v2';
 const urlsToCache = [
   './',
   './index.html',
@@ -30,24 +30,28 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Cache hit - return response
         if (response) {
-          return response;
+          return response; // Return from cache
         }
-        return fetch(event.request).then(
-          function(response) {
-            // Check if we received a valid response
-            if(!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
+        return fetch(event.request)
+          .then(networkResponse => {
+            if(!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+              return networkResponse;
             }
-            var responseToCache = response.clone();
+            let responseToCache = networkResponse.clone();
             caches.open(CACHE_NAME)
-              .then(function(cache) {
+              .then(cache => {
                 cache.put(event.request, responseToCache);
               });
-            return response;
-          }
-        );
+            return networkResponse;
+          })
+          .catch(err => {
+            // If network fetch fails (offline) and it's a navigation request, try serving index.html
+            if (event.request.mode === 'navigate') {
+              return caches.match('./index.html');
+            }
+            throw err;
+          });
       })
   );
 });

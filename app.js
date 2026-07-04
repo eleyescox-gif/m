@@ -45,11 +45,42 @@ let state = {
     subscriptions: [],
     users: {}, // Loaded from LocalStorage
     settings: {}, // Loaded from LocalStorage
+    committee: [],
     currentUser: null, // Track logged in user object
     currentView: 'dashboard',
     memberFilter: 'all',
     txFormType: 'INCOME',
-    activeMemberId: null // Stores currently viewed member in modal
+    activeMemberId: null, // Stores currently viewed member in modal
+    isDarkMode: false
+};
+
+window.state = state;
+
+// Receive updated state from Firebase
+window.syncStateFromCloud = function(cloudState) {
+    if (!cloudState) return;
+    
+    // Update local state arrays safely
+    state.members = cloudState.members || [];
+    state.transactions = cloudState.transactions || [];
+    state.subscriptions = cloudState.subscriptions || [];
+    state.committee = cloudState.committee || [];
+    state.users = cloudState.users || {};
+    state.settings = cloudState.settings || {};
+    
+    // Do not call saveState() here, as it would cause an infinite loop with Firebase
+    // Instead, just save to localStorage manually so it's available offline
+    localStorage.setItem('mosque_members', JSON.stringify(state.members));
+    localStorage.setItem('mosque_transactions', JSON.stringify(state.transactions));
+    localStorage.setItem('mosque_subscriptions', JSON.stringify(state.subscriptions));
+    localStorage.setItem('mosque_users', JSON.stringify(state.users));
+    localStorage.setItem('mosque_settings', JSON.stringify(state.settings));
+    localStorage.setItem('mosque_committee', JSON.stringify(state.committee));
+    
+    // Re-render UI with new data
+    if (typeof refreshAppUI === 'function') {
+        refreshAppUI();
+    }
 };
 
 // Temporary holder for uploaded logo file
@@ -306,27 +337,33 @@ function loadState() {
     const localTransactions = localStorage.getItem('mosque_transactions');
     const localSubscriptions = localStorage.getItem('mosque_subscriptions');
 
-    if (localMembers && localTransactions && localSubscriptions) {
+    if (localMembers) {
         state.members = JSON.parse(localMembers);
-        state.transactions = JSON.parse(localTransactions);
-        state.subscriptions = JSON.parse(localSubscriptions);
-        document.getElementById('demoBanner').style.display = 'none';
     } else {
-        generateDemoData();
-        document.getElementById('demoBanner').style.display = 'flex';
+        state.members = [];
     }
+
+    if (localTransactions) {
+        state.transactions = JSON.parse(localTransactions);
+    } else {
+        state.transactions = [];
+    }
+
+    if (localSubscriptions) {
+        state.subscriptions = JSON.parse(localSubscriptions);
+    } else {
+        state.subscriptions = [];
+    }
+    
+    const banner = document.getElementById('demoBanner');
+    if (banner) banner.style.display = 'none';
 
     // Load Managing Committee members list
     const localCommittee = localStorage.getItem('mosque_committee');
     if (localCommittee) {
         state.committee = JSON.parse(localCommittee);
     } else {
-        state.committee = [
-            { id: 1, name: 'আলহাজ্ব মো: আব্দুর রহমান', designation: 'সভাপতি', phone: '01711223344', photo: '' },
-            { id: 2, name: 'মো: আব্দুল কুদ্দুস', designation: 'সাধারণ সম্পাদক', phone: '01711556677', photo: '' },
-            { id: 3, name: 'মো: মফিজুল ইসলাম', designation: 'ক্যাশিয়ার', phone: '01711889900', photo: '' }
-        ];
-        localStorage.setItem('mosque_committee', JSON.stringify(state.committee));
+        state.committee = [];
     }
 
     // Apply Settings (Name, Address, Logo) to UI
@@ -346,6 +383,11 @@ function saveState() {
     localStorage.setItem('mosque_users', JSON.stringify(state.users));
     localStorage.setItem('mosque_settings', JSON.stringify(state.settings));
     localStorage.setItem('mosque_committee', JSON.stringify(state.committee));
+    
+    // Cloud Sync
+    if (window.FirebaseSync && window.FirebaseSync.pushState) {
+        window.FirebaseSync.pushState(state);
+    }
 }
 
 // Apply Stored Settings to UI Elements
