@@ -10,7 +10,7 @@
     <link rel="apple-touch-icon" href="icon-512x512.jpg">
     <!-- FontAwesome for Premium Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=3">
     <!-- SheetJS for Excel Import -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -197,9 +197,14 @@
 
                 <div class="section-header">
                     <h3>সদস্য তালিকা</h3>
-                    <button id="addMemberBtn" class="btn btn-primary" style="height: 36px; padding: 0 12px; font-size: 12px; width: auto;" onclick="openModal('add-member-modal')">
-                        <i class="fa-solid fa-user-plus"></i> সদস্য যোগ
-                    </button>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary" style="height: 36px; padding: 0 12px; font-size: 12px; width: auto; background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;" onclick="printArrearsList()">
+                            <i class="fa-solid fa-print"></i> বকেয়া তালিকা
+                        </button>
+                        <button id="addMemberBtn" class="btn btn-primary" style="height: 36px; padding: 0 12px; font-size: 12px; width: auto;" onclick="openModal('add-member-modal')">
+                            <i class="fa-solid fa-user-plus"></i> সদস্য যোগ
+                        </button>
+                    </div>
                 </div>
 
                 <div class="list-container" id="membersList">
@@ -457,6 +462,18 @@
                     </div>
                     <div id="recycleBinList" style="display: flex; flex-direction: column; gap: 8px;">
                         <!-- Soft-deleted members rendered dynamically -->
+                    </div>
+                </div>
+
+                <!-- ADMIN ONLY: Global DB Recycle Bin Section -->
+                <div id="adminGlobalRecycleBinSection" class="chart-card" style="margin-bottom: 20px; display: none; border-color: var(--warning-color);">
+                    <div class="chart-title" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>ডাটাবেস রিসাইকেল বিন (৩০ দিন)</span>
+                        <i class="fa-solid fa-database" style="color: var(--warning-color);"></i>
+                    </div>
+                    <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">মোছা হওয়া ডাটাবেস এখানে ৩০ দিন পর্যন্ত জমা থাকে।</p>
+                    <div id="globalRecycleBinList" style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- Global DB snapshots rendered dynamically -->
                     </div>
                 </div>
 
@@ -735,6 +752,26 @@
         </div>
     </div>
 
+    <!-- ================== DEDICATED ARREARS LIST PRINT LAYOUT ================== -->
+    <div id="printableArrearsListArea" class="print-only">
+        <h3 id="arrearsPrintTitle" style="text-align: center; margin-top: 0; margin-bottom: 20px; font-size: 18px; text-decoration: underline; font-weight: bold;">
+            সদস্যদের বকেয়া চাঁদার তালিকা
+        </h3>
+        
+        <table id="printableArrearsTable" style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 40px;">
+            <thead>
+                <tr style="background-color: #f2f2f2;">
+                    <th style="border: 1px solid #000 !important; padding: 6px !important;">সদস্য নাম</th>
+                    <th style="border: 1px solid #000 !important; padding: 6px !important;">মোবাইল</th>
+                    <th style="border: 1px solid #000 !important; padding: 6px !important; text-align: center;">মোট বকেয়া (৳)</th>
+                </tr>
+            </thead>
+            <tbody id="printArrearsTableBody">
+                <!-- Loaded dynamically -->
+            </tbody>
+        </table>
+    </div>
+
     <!-- ================== DEDICATED A4 MEMBER PRINT LAYOUT ================== -->
     <!-- (Strictly ONLY Member Info and table shown, NO Pad Header/Logo here!) -->
     <div id="printableMemberReceiptArea" class="print-only">
@@ -924,8 +961,11 @@
         </div>
     </div>
 
+    <!-- html2pdf Library for Mobile PDF Download -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <!-- Main JavaScript App -->
-    <script src="app.js?v=2026.07.04.3"></script>
+    <script src="app.js?v=2026.07.17.3"></script>
     <script type="module" src="firebase-db.js?v=2"></script>
     <script>
         if ('serviceWorker' in navigator) {

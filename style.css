@@ -36,9 +36,12 @@ body {
     line-height: 1.6;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start; /* Changed from center to avoid mobile top clipping */
     min-height: 100vh;
+    min-height: 100dvh; /* Modern mobile browser viewport fix */
     overflow-x: hidden;
+    padding: 0;
+    margin: 0;
 }
 
 /* Mobile Container Viewport */
@@ -46,6 +49,7 @@ body {
     width: 100%;
     max-width: 450px;
     height: 100vh;
+    height: 100dvh; /* Modern mobile browser viewport fix */
     background-color: var(--bg-color);
     display: flex;
     flex-direction: column;
@@ -59,6 +63,7 @@ body {
         height: 850px;
         border-radius: 30px;
         border: 8px solid #2d3748;
+        margin: auto; /* Center vertically on desktop */
     }
 }
 
@@ -1143,7 +1148,7 @@ textarea.form-control {
 }
 
 /* HIDE PRINT MODULES ON SCREEN VIEWPORT */
-#printableMemberReceiptArea, #printableInstitutionReceiptArea {
+.print-only, #printableMemberReceiptArea, #printableInstitutionReceiptArea {
     display: none;
 }
 
@@ -1153,52 +1158,44 @@ textarea.form-control {
         size: A4;
         margin: 0.3in 0.5in 0.5in 0.5in !important;
     }
-    /* Hide everything on viewport */
-    body * {
-        visibility: hidden !important;
-    }
     
-    /* Toggle Visibility based on printing target classes */
-    body.print-active-member #printableMemberReceiptArea, 
-    body.print-active-member #printableMemberReceiptArea * {
-        visibility: visible !important;
-    }
-    
-    body.print-active-inst #printableInstitutionReceiptArea, 
-    body.print-active-inst #printableInstitutionReceiptArea * {
-        visibility: visible !important;
+    body, html {
+        height: auto !important;
+        min-height: auto !important;
+        background-color: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
 
-    /* Print Member Sheet position details */
-    body.print-active-member #printableMemberReceiptArea {
-        display: block !important;
-        position: absolute;
-        left: 0;
-        top: 0;
+    /* Hide ALL non-printable UI elements entirely from layout */
+    .app-container,
+    .modal-overlay,
+    .bottom-nav,
+    script,
+    style {
+        display: none !important;
+    }
+
+    /* By default, hide all print areas */
+    .print-only {
+        display: none !important;
+        visibility: visible !important;
+        position: static !important; /* Fixes 2-page bug caused by absolute positioning */
         width: 100% !important;
         background: white !important;
         color: black !important;
         padding: 0 !important;
         margin: 0 !important;
-        box-sizing: border-box !important;
         font-family: 'Outfit', 'Hind Siliguri', sans-serif !important;
     }
 
-    /* Print Inst Sheet position details */
-    body.print-active-inst #printableInstitutionReceiptArea {
+    /* Only show the targeted print area based on the active body class */
+    body.print-active-member #printableMemberReceiptArea,
+    body.print-active-inst #printableInstitutionReceiptArea,
+    body.print-active-arrears #printableArrearsListArea {
         display: block !important;
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100% !important;
-        background: white !important;
-        color: black !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        box-sizing: border-box !important;
-        font-family: 'Outfit', 'Hind Siliguri', sans-serif !important;
     }
-
+}
     .print-pad-header {
         text-align: center;
         margin-bottom: 20px;

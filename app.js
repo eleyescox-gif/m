@@ -46,6 +46,7 @@ let state = {
     users: {}, // Loaded from LocalStorage
     settings: {}, // Loaded from LocalStorage
     committee: [],
+    global_recycle_bin: [], // 30-day global recycle bin for DB snapshots
     currentUser: null, // Track logged in user object
     currentView: 'dashboard',
     memberFilter: 'all',
@@ -60,6 +61,15 @@ window.state = state;
 window.syncStateFromCloud = function(cloudState) {
     if (!cloudState) return;
     
+    // Auto-cleanup old global recycle bin items (older than 30 days)
+    let recycleBin = cloudState.global_recycle_bin || [];
+    const now = new Date();
+    recycleBin = recycleBin.filter(item => {
+        const deletedAt = new Date(item.deletedAt);
+        const diffTime = Math.abs(now - deletedAt);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays <= 30;
+    });
     // Helper to fix Firebase Realtime Database object-to-array quirk
     const ensureArray = (data) => {
         if (Array.isArray(data)) return data;
@@ -72,6 +82,7 @@ window.syncStateFromCloud = function(cloudState) {
     state.transactions = ensureArray(cloudState.transactions);
     state.subscriptions = ensureArray(cloudState.subscriptions);
     state.committee = ensureArray(cloudState.committee);
+    state.global_recycle_bin = recycleBin;
     state.users = cloudState.users || {};
     state.settings = cloudState.settings || {};
     
@@ -83,6 +94,7 @@ window.syncStateFromCloud = function(cloudState) {
     localStorage.setItem('mosque_users', JSON.stringify(state.users));
     localStorage.setItem('mosque_settings', JSON.stringify(state.settings));
     localStorage.setItem('mosque_committee', JSON.stringify(state.committee));
+    localStorage.setItem('mosque_global_recycle_bin', JSON.stringify(state.global_recycle_bin));
     
     // Re-render UI with new data
     if (typeof refreshAppUI === 'function') {
@@ -379,6 +391,13 @@ function loadState() {
         state.committee = [];
     }
 
+    const localRecycleBin = localStorage.getItem('mosque_global_recycle_bin');
+    if (localRecycleBin) {
+        state.global_recycle_bin = JSON.parse(localRecycleBin);
+    } else {
+        state.global_recycle_bin = [];
+    }
+
     // Apply Settings (Name, Address, Logo) to UI
     applySettingsToUI();
     
@@ -396,6 +415,7 @@ function saveState() {
     localStorage.setItem('mosque_users', JSON.stringify(state.users));
     localStorage.setItem('mosque_settings', JSON.stringify(state.settings));
     localStorage.setItem('mosque_committee', JSON.stringify(state.committee));
+    localStorage.setItem('mosque_global_recycle_bin', JSON.stringify(state.global_recycle_bin));
     
     // Cloud Sync
     if (window.FirebaseSync && window.FirebaseSync.pushState) {
@@ -626,6 +646,7 @@ function populateSettingsInputs() {
     if (state.currentUser.role === 'admin') {
         renderAdminCommitteeEditor();
         renderRecycleBin();
+        renderGlobalRecycleBin();
         handleRoleSelectChange(); // Load recovery phone number for currently selected role
     }
 }
@@ -941,26 +962,60 @@ function generateDemoData() {
     saveState();
 }
 
+// Push current DB snapshot to Recycle Bin
+function backupToRecycleBin() {
+    const snapshot = {
+        deletedAt: new Date().toISOString(),
+        members: JSON.parse(JSON.stringify(state.members)),
+        transactions: JSON.parse(JSON.stringify(state.transactions)),
+        subscriptions: JSON.parse(JSON.stringify(state.subscriptions)),
+        committee: JSON.parse(JSON.stringify(state.committee))
+    };
+    state.global_recycle_bin.push(snapshot);
+}
+
 // Reset App
 function resetAppDemoData() {
-    if (confirm("আপনি কি নিশ্চিতভাবে সব ডাটা মুছে পূর্বের ডেমো ডাটায় ফিরে যেতে চান?")) {
-        localStorage.clear();
-        generateDemoData();
-        document.getElementById('demoBanner').style.display = 'flex';
-        checkLoginSession();
+    if (confirm("আপনি কি নিশ্চিতভাবে সব ডাটা মুছে পূর্বের ডেমো ডাটায় ফিরে যেতে চান? (এটি করতে সভাপতির পাসওয়ার্ড লাগবে)")) {
+        const presPass = prompt("নিরাপত্তার জন্য সভাপতির পাসওয়ার্ডটি দিন:");
+        if (presPass === state.users.president.password) {
+            backupToRecycleBin();
+            
+            // Keep users, settings, and recycle bin
+            state.members = [];
+            state.transactions = [];
+            state.subscriptions = [];
+            state.committee = [];
+            saveState(); // Saves to cloud & local
+            
+            generateDemoData();
+            document.getElementById('demoBanner').style.display = 'flex';
+            checkLoginSession();
+        } else {
+            alert("দুঃখিত, সভাপতির পাসওয়ার্ড সঠিক নয়! ডাটা মোছা বাতিল করা হয়েছে।");
+        }
     }
 }
 
 // Clear all data
 function clearAllData() {
-    if (confirm("সাবধান! এটি আপনার সকল ডাটা স্থায়ীভাবে মুছে দেবে। আপনি কি ডাটাবেস সম্পূর্ণ খালি করতে চান?")) {
-        state.members = [];
-        state.transactions = [];
-        state.subscriptions = [];
-        saveState();
-        document.getElementById('demoBanner').style.display = 'none';
-        refreshAppUI();
-        alert("সকল তথ্য ডাটাবেস থেকে মুছে ফেলা হয়েছে।");
+    if (confirm("সাবধান! এটি আপনার সকল ডাটা মুছে দেবে। ডাটাগুলো ৩০ দিন রিসাইকেল বিনে জমা থাকবে। আপনি কি ডাটাবেস সম্পূর্ণ খালি করতে চান?")) {
+        const presPass = prompt("নিরাপত্তার জন্য সভাপতির পাসওয়ার্ডটি দিন:");
+        if (presPass === state.users.president.password) {
+            backupToRecycleBin();
+            
+            state.members = [];
+            state.transactions = [];
+            state.subscriptions = [];
+            state.committee = [];
+            saveState();
+            
+            document.getElementById('demoBanner').style.display = 'none';
+            refreshAppUI();
+            alert("সকল তথ্য মুছে ফেলা হয়েছে এবং ৩০ দিনের জন্য রিসাইকেল বিনে জমা করা হয়েছে।");
+        } else {
+            alert("দুঃখিত, সভাপতির পাসওয়ার্ড সঠিক নয়! ডাটা মোছা বাতিল করা হয়েছে।");
+        }
     }
 }
 
@@ -1308,7 +1363,10 @@ function renderMembersList() {
             <div class="member-info">
                 <div class="member-avatar">${firstChar}</div>
                 <div>
-                    <div class="member-name">${m.name}</div>
+                    <div class="member-name" style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+                        ${m.name}
+                        ${advanceAmount > 0 ? `<span style="font-size: 10px; background-color: var(--success-color); color: white; padding: 2px 6px; border-radius: 10px; font-weight: normal;">অগ্রিম: ৳ ${englishToBanglaNum(advanceAmount.toFixed(0))}</span>` : ''}
+                    </div>
                     <div class="member-phone">
                         <i class="fa-solid fa-phone"></i> ${englishToBanglaNum(m.phone)}
                     </div>
@@ -1790,6 +1848,76 @@ function handleEasyPaymentSubmit(e) {
     }
 }
 
+// Print Arrears List
+function printArrearsList() {
+    const tbody = document.getElementById('printArrearsTableBody');
+    tbody.innerHTML = '';
+    
+    // Filter active and suspended members with due
+    let dueMembers = state.members.filter(m => (m.status === 'Active' || m.status === 'Suspended') && calculateMemberTotalDue(m.id) > 0);
+    
+    // Sort descending by due amount
+    dueMembers.sort((a, b) => calculateMemberTotalDue(b.id) - calculateMemberTotalDue(a.id));
+    
+    if (dueMembers.length === 0) {
+        alert('বর্তমানে কোনো সদস্যের বকেয়া নেই!');
+        return;
+    }
+    
+    let totalDue = 0;
+    
+    dueMembers.forEach(m => {
+        const due = calculateMemberTotalDue(m.id);
+        totalDue += due;
+        
+        tbody.innerHTML += `
+            <tr style="border-bottom: 1px solid #ddd;">
+                <td style="border: 1px solid #000 !important; padding: 6px !important;">${m.name} (${m.member_type})</td>
+                <td style="border: 1px solid #000 !important; padding: 6px !important;">${m.phone}</td>
+                <td style="border: 1px solid #000 !important; padding: 6px !important; text-align: center; font-weight: bold; color: red;">৳ ${englishToBanglaNum(due.toFixed(2))}</td>
+            </tr>
+        `;
+    });
+    
+    // Add total row
+    tbody.innerHTML += `
+        <tr style="background-color: #f2f2f2; font-weight: bold;">
+            <td colspan="2" style="border: 1px solid #000 !important; padding: 6px !important; text-align: right;">সর্বমোট বকেয়া:</td>
+            <td style="border: 1px solid #000 !important; padding: 6px !important; text-align: center; color: red;">৳ ${englishToBanglaNum(totalDue.toFixed(2))}</td>
+        </tr>
+    `;
+    
+    // Helper to print or download PDF (Mobile friendly)
+    function triggerPrint(elementId, filename, bodyClass) {
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const element = document.getElementById(elementId);
+        
+        if (isMobile && typeof html2pdf !== 'undefined') {
+            // Mobile: Download PDF directly
+            const opt = {
+                margin:       10,
+                filename:     filename + '.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save().then(() => {
+                alert('পিডিএফ ফাইলটি ডাউনলোড হয়েছে!');
+                if(bodyClass) document.body.classList.remove(bodyClass);
+            });
+        } else {
+            // Desktop: Normal print dialog
+            window.print();
+            setTimeout(() => {
+                if(bodyClass) document.body.classList.remove(bodyClass);
+            }, 1000);
+        }
+    }
+
+    document.body.classList.add('print-active-arrears');
+    triggerPrint('printableArrearsListArea', 'Arrears_List', 'print-active-arrears');
+}
+
 // Generate A4 Yearly Report & trigger printing (MEMBER ONLY details, NO pad header/logo)
 function generateYearlyPrintReport() {
     const memberId = state.activeMemberId;
@@ -1862,11 +1990,7 @@ function generateYearlyPrintReport() {
 
     // Set class to print ONLY member sheet, and print
     document.body.classList.add('print-active-member');
-    window.print();
-    
-    setTimeout(() => {
-        document.body.classList.remove('print-active-member');
-    }, 1000);
+    triggerPrint('printableMemberReceiptArea', 'Member_Receipt_' + member.name, 'print-active-member');
 }
 
 // Generate A4 Institution Monthly Report (Pad header, logo and financial summary included)
@@ -1975,11 +2099,7 @@ function generateInstitutionPrintReport() {
 
     // Set class to print ONLY Institution Report pad, and print
     document.body.classList.add('print-active-inst');
-    window.print();
-    
-    setTimeout(() => {
-        document.body.classList.remove('print-active-inst');
-    }, 1000);
+    triggerPrint('printableInstitutionReceiptArea', 'Institution_Report_' + BANGLA_MONTHS[selectMonth], 'print-active-inst');
 }
 
 // Open Edit Member Form
@@ -2708,6 +2828,82 @@ function rejectDeletionRequest(memberId) {
     
     alert(`সদস্য ${member.name}-এর ডিলিট আবেদন বাতিল করা হয়েছে।`);
 }
+
+// Render Global DB Recycle Bin (30-day snapshots)
+function renderGlobalRecycleBin() {
+    const container = document.getElementById('globalRecycleBinList');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!state.global_recycle_bin || state.global_recycle_bin.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 15px; font-size: 12px;">কোনো মুছে ফেলা ডাটাবেস নেই।</div>';
+        return;
+    }
+
+    const now = new Date();
+
+    // Sort descending by deletedAt
+    const sortedBin = [...state.global_recycle_bin].sort((a, b) => new Date(b.deletedAt) - new Date(a.deletedAt));
+
+    sortedBin.forEach((snapshot, sortedIndex) => {
+        // Find original index
+        const originalIndex = state.global_recycle_bin.indexOf(snapshot);
+        
+        const deletedDate = new Date(snapshot.deletedAt);
+        const diffMs = now - deletedDate;
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const remainingDays = Math.max(0, 30 - diffDays);
+
+        const card = document.createElement('div');
+        card.style.display = 'flex';
+        card.style.justifyContent = 'space-between';
+        card.style.alignItems = 'center';
+        card.style.padding = '10px';
+        card.style.border = '1px solid #ffeeba';
+        card.style.borderRadius = '8px';
+        card.style.background = '#fff8e5';
+        card.style.fontSize = '12px';
+
+        card.innerHTML = `
+            <div>
+                <strong>${formatDate(snapshot.deletedAt.split('T')[0])}</strong> - ${new Date(snapshot.deletedAt).toLocaleTimeString('bn-BD')}
+                <div style="font-size: 10px; color: #856404; margin-top: 2px;">
+                    <i class="fa-solid fa-clock"></i> আর ${englishToBanglaNum(remainingDays.toString())} দিন পর মুছে যাবে
+                </div>
+                <div style="font-size: 10px; color: #333; margin-top: 2px;">
+                    সদস্য: ${englishToBanglaNum(snapshot.members?.length.toString() || '0')}, লেনদেন: ${englishToBanglaNum(snapshot.transactions?.length.toString() || '0')}
+                </div>
+            </div>
+            <button class="btn btn-primary" style="height: 28px; padding: 0 10px; font-size: 11px;" onclick="restoreGlobalRecycleBin(${originalIndex})">
+                <i class="fa-solid fa-rotate-left"></i> রিস্টোর
+            </button>
+        `;
+        container.appendChild(card);
+    });
+}
+
+// Restore entire database from global recycle bin snapshot
+window.restoreGlobalRecycleBin = function(index) {
+    if (confirm("আপনি কি নিশ্চিতভাবে এই ডাটাবেসটি রিস্টোর করতে চান? আপনার বর্তমান ডাটা এর ফলে ওভাররাইট হয়ে যাবে।")) {
+        const snapshot = state.global_recycle_bin[index];
+        if (!snapshot) return;
+
+        // Restore active arrays
+        state.members = JSON.parse(JSON.stringify(snapshot.members || []));
+        state.transactions = JSON.parse(JSON.stringify(snapshot.transactions || []));
+        state.subscriptions = JSON.parse(JSON.stringify(snapshot.subscriptions || []));
+        if (snapshot.committee) {
+            state.committee = JSON.parse(JSON.stringify(snapshot.committee));
+        }
+
+        // Remove from recycle bin
+        state.global_recycle_bin.splice(index, 1);
+        
+        saveState();
+        refreshAppUI();
+        alert("সফলভাবে ডাটাবেসটি রিস্টোর করা হয়েছে!");
+    }
+};
 
 // Render Soft-deleted members in Admin settings panel
 function renderRecycleBin() {
