@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
     --primary-color: #0f5132;
@@ -30,7 +30,7 @@
 }
 
 body {
-    font-family: 'Outfit', 'Hind Siliguri', sans-serif;
+    font-family: 'Inter', 'Hind Siliguri', sans-serif;
     background-color: var(--bg-color);
     color: var(--text-main);
     line-height: 1.6;
@@ -1161,6 +1161,7 @@ textarea.form-control {
     }
     
     body, html {
+        display: block !important;
         height: auto !important;
         min-height: auto !important;
         background-color: white !important;
@@ -1187,7 +1188,7 @@ textarea.form-control {
         color: black !important;
         padding: 0 !important;
         margin: 0 !important;
-        font-family: 'Outfit', 'Hind Siliguri', sans-serif !important;
+        font-family: 'Inter', 'Hind Siliguri', sans-serif !important;
     }
 
     /* Only show the targeted print area based on the active body class */
@@ -1196,7 +1197,7 @@ textarea.form-control {
     body.print-active-arrears #printableArrearsListArea {
         display: block !important;
     }
-}
+
     .print-pad-header {
         text-align: center;
         margin-bottom: 20px;

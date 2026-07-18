@@ -11,7 +11,7 @@
     <meta name="theme-color" content="#2e7d32">
     <!-- FontAwesome for Premium Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=4">
+    <link rel="stylesheet" href="style.css?v=5">
     <!-- SheetJS for Excel Import -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -770,9 +770,11 @@
         <table id="printableArrearsTable" style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 40px;">
             <thead>
                 <tr style="background-color: #f2f2f2;">
-                    <th style="border: 1px solid #000 !important; padding: 6px !important;">সদস্য নাম</th>
+                    <th style="border: 1px solid #000 !important; padding: 6px !important; text-align: center; width: 50px;">ক্র:নং</th>
+                    <th style="border: 1px solid #000 !important; padding: 6px !important;">নাম</th>
                     <th style="border: 1px solid #000 !important; padding: 6px !important;">মোবাইল</th>
-                    <th style="border: 1px solid #000 !important; padding: 6px !important; text-align: center;">মোট বকেয়া (৳)</th>
+                    <th style="border: 1px solid #000 !important; padding: 6px !important; text-align: center;">বকেয়া</th>
+                    <th style="border: 1px solid #000 !important; padding: 6px !important;">মন্তব্য</th>
                 </tr>
             </thead>
             <tbody id="printArrearsTableBody">
@@ -974,7 +976,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <!-- Main JavaScript App -->
-    <script src="app.js?v=2026.07.18.2"></script>
+    <script src="app.js?v=2026.07.18.5"></script>
     <script type="module" src="firebase-db.js?v=2"></script>
     <script>
         if ('serviceWorker' in navigator) {

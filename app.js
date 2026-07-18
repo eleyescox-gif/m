@@ -1914,15 +1914,17 @@ function printArrearsList() {
     
     let totalDue = 0;
     
-    dueMembers.forEach(m => {
+    dueMembers.forEach((m, index) => {
         const due = calculateMemberTotalDue(m.id);
         totalDue += due;
         
         tbody.innerHTML += `
             <tr style="border-bottom: 1px solid #ddd;">
-                <td style="border: 1px solid #000 !important; padding: 6px !important;">${m.name} (${m.member_type})</td>
-                <td style="border: 1px solid #000 !important; padding: 6px !important;">${m.phone}</td>
+                <td style="border: 1px solid #000 !important; padding: 6px !important; text-align: center;">${englishToBanglaNum((index + 1).toString())}</td>
+                <td style="border: 1px solid #000 !important; padding: 6px !important;">${m.name}</td>
+                <td style="border: 1px solid #000 !important; padding: 6px !important;">${englishToBanglaNum(m.phone)}</td>
                 <td style="border: 1px solid #000 !important; padding: 6px !important; text-align: center; font-weight: bold; color: red;">৳ ${englishToBanglaNum(due.toFixed(2))}</td>
+                <td style="border: 1px solid #000 !important; padding: 6px !important;"></td>
             </tr>
         `;
     });
@@ -1930,11 +1932,13 @@ function printArrearsList() {
     // Add total row
     tbody.innerHTML += `
         <tr style="background-color: #f2f2f2; font-weight: bold;">
-            <td colspan="2" style="border: 1px solid #000 !important; padding: 6px !important; text-align: right;">সর্বমোট বকেয়া:</td>
+            <td colspan="3" style="border: 1px solid #000 !important; padding: 6px !important; text-align: right;">সর্বমোট বকেয়া:</td>
             <td style="border: 1px solid #000 !important; padding: 6px !important; text-align: center; color: red;">৳ ${englishToBanglaNum(totalDue.toFixed(2))}</td>
+            <td style="border: 1px solid #000 !important; padding: 6px !important;"></td>
         </tr>
     `;
     
+    document.body.classList.remove('print-active-member', 'print-active-inst', 'print-active-arrears');
     document.body.classList.add('print-active-arrears');
     triggerPrint('printableArrearsListArea', 'Arrears_List', 'print-active-arrears');
 }
@@ -2010,6 +2014,7 @@ function generateYearlyPrintReport() {
     }
 
     // Set class to print ONLY member sheet, and print
+    document.body.classList.remove('print-active-member', 'print-active-inst', 'print-active-arrears');
     document.body.classList.add('print-active-member');
     triggerPrint('printableMemberReceiptArea', 'Member_Receipt_' + member.name, 'print-active-member');
 }
@@ -2119,6 +2124,7 @@ function generateInstitutionPrintReport() {
     document.getElementById('printInstFooterTotalExpense').innerText = `৳ ${englishToBanglaNum(monthlyExp.toFixed(2))}`;
 
     // Set class to print ONLY Institution Report pad, and print
+    document.body.classList.remove('print-active-member', 'print-active-inst', 'print-active-arrears');
     document.body.classList.add('print-active-inst');
     triggerPrint('printableInstitutionReceiptArea', 'Institution_Report_' + BANGLA_MONTHS[selectMonth], 'print-active-inst');
 }
