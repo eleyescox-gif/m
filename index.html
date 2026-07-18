@@ -6,11 +6,12 @@
     <title>মসজিদ আর্থিক ব্যবস্থাপনা</title>
     <!-- PWA Manifest & Meta Tags -->
     <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon.png">
     <meta name="theme-color" content="#2e7d32">
-    <link rel="apple-touch-icon" href="icon-512x512.jpg">
     <!-- FontAwesome for Premium Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="stylesheet" href="style.css?v=4">
     <!-- SheetJS for Excel Import -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -754,6 +755,14 @@
 
     <!-- ================== DEDICATED ARREARS LIST PRINT LAYOUT ================== -->
     <div id="printableArrearsListArea" class="print-only">
+        <div class="print-pad-header">
+            <div id="printArrearsLogoContainer" style="display: flex; justify-content: center; margin-bottom: 10px;">
+                <!-- Logo dynamically loaded -->
+            </div>
+            <h2 id="printArrearsName">বাইতুল মামুর জামে মসজিদ</h2>
+            <p id="printArrearsAddress">স্থাপিত: ১৯৯৫ খ্রি. | গ্রাম: মধ্যপাড়া, ডাকঘর: বাজারপাড়া</p>
+            <hr style="border: 0.5px solid #000; margin-top: 5px; margin-bottom: 5px;">
+        </div>
         <h3 id="arrearsPrintTitle" style="text-align: center; margin-top: 0; margin-bottom: 20px; font-size: 18px; text-decoration: underline; font-weight: bold;">
             সদস্যদের বকেয়া চাঁদার তালিকা
         </h3>
@@ -965,7 +974,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <!-- Main JavaScript App -->
-    <script src="app.js?v=2026.07.17.3"></script>
+    <script src="app.js?v=2026.07.18.2"></script>
     <script type="module" src="firebase-db.js?v=2"></script>
     <script>
         if ('serviceWorker' in navigator) {

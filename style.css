@@ -203,7 +203,7 @@ body {
 
 /* Bottom Navigation (Optimized for small mobile viewports) */
 .bottom-nav {
-    position: absolute;
+    position: fixed; /* Changed from absolute to fixed for mobile */
     bottom: 0;
     left: 0;
     right: 0;
@@ -216,11 +216,12 @@ body {
     justify-content: space-around;
     align-items: center;
     padding: 0 5px;
-    z-index: 20;
+    z-index: 9999; /* Ensure it stays above everything */
 }
 
 @media (min-width: 451px) {
     .bottom-nav {
+        position: absolute; /* Revert to absolute for desktop mock container */
         border-bottom-left-radius: 22px;
         border-bottom-right-radius: 22px;
     }

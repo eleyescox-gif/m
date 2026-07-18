@@ -432,9 +432,19 @@ function applySettingsToUI() {
     document.getElementById('headerTitle').innerText = name;
     document.getElementById('loginAppTitle').innerText = name;
     document.getElementById('profileInstitutionName').innerText = name;
-    document.getElementById('printInstName').innerText = name;
-    document.getElementById('printInstAddress').innerText = address;
+    
+    // Set text headers
+    const printInstName = document.getElementById('printInstName');
+    const printInstAddress = document.getElementById('printInstAddress');
+    const printArrearsName = document.getElementById('printArrearsName');
+    const printArrearsAddress = document.getElementById('printArrearsAddress');
+    
+    if(printInstName) printInstName.innerText = name;
+    if(printInstAddress) printInstAddress.innerText = address;
+    if(printArrearsName) printArrearsName.innerText = name;
+    if(printArrearsAddress) printArrearsAddress.innerText = address;
 
+    // Set UI Logos
     const logoContainers = ['headerLogoContainer', 'loginLogoContainer', 'profileLogoContainer'];
     logoContainers.forEach(id => {
         const container = document.getElementById(id);
@@ -447,15 +457,19 @@ function applySettingsToUI() {
         }
     });
 
-    const printLogoContainer = document.getElementById('printInstLogoContainer');
-    if (printLogoContainer) {
-        if (logo) {
-            printLogoContainer.innerHTML = `<img src="${logo}" alt="Logo" style="height: 55px; border-radius: 50%; border: 1px solid #000;">`;
-            printLogoContainer.style.display = 'flex';
-        } else {
-            printLogoContainer.style.display = 'none';
+    // Set Print Logos
+    const printLogoContainers = ['printInstLogoContainer', 'printArrearsLogoContainer'];
+    printLogoContainers.forEach(id => {
+        const container = document.getElementById(id);
+        if (container) {
+            if (logo) {
+                container.innerHTML = `<img src="${logo}" alt="Logo" style="height: 55px; border-radius: 50%; border: 1px solid #000;">`;
+                container.style.display = 'flex';
+            } else {
+                container.style.display = 'none'; // Hide logo section if no logo provided
+            }
         }
-    }
+    });
 }
 
 // Check logged in user status
@@ -1848,7 +1862,41 @@ function handleEasyPaymentSubmit(e) {
     }
 }
 
-// Print Arrears List
+// Helper to print or download PDF (Mobile friendly)
+function triggerPrint(elementId, filename, bodyClass) {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const element = document.getElementById(elementId);
+    
+    if (isMobile && typeof html2pdf !== 'undefined') {
+        // Mobile: Download PDF directly. Make element visible before cloning.
+        const originalDisplay = element.style.display;
+        element.style.display = 'block';
+        element.style.position = 'static'; // Fix absolute positioning blank page issue
+        
+        const opt = {
+            margin:       [5, 5, 5, 5], // Reduced margin to fit A4 better
+            filename:     filename + '.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        
+        html2pdf().set(opt).from(element).save().then(() => {
+            alert('পিডিএফ ফাইলটি ডাউনলোড হয়েছে!');
+            element.style.display = originalDisplay; // Revert visibility
+            element.style.position = ''; // Revert position
+            if(bodyClass) document.body.classList.remove(bodyClass);
+        });
+    } else {
+        // Desktop: Normal print dialog
+        window.print();
+        setTimeout(() => {
+            if(bodyClass) document.body.classList.remove(bodyClass);
+        }, 1000);
+    }
+}
+
+// Generate A4 Arrears List Pad
 function printArrearsList() {
     const tbody = document.getElementById('printArrearsTableBody');
     tbody.innerHTML = '';
@@ -1887,33 +1935,6 @@ function printArrearsList() {
         </tr>
     `;
     
-    // Helper to print or download PDF (Mobile friendly)
-    function triggerPrint(elementId, filename, bodyClass) {
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        const element = document.getElementById(elementId);
-        
-        if (isMobile && typeof html2pdf !== 'undefined') {
-            // Mobile: Download PDF directly
-            const opt = {
-                margin:       10,
-                filename:     filename + '.pdf',
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2 },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-            html2pdf().set(opt).from(element).save().then(() => {
-                alert('পিডিএফ ফাইলটি ডাউনলোড হয়েছে!');
-                if(bodyClass) document.body.classList.remove(bodyClass);
-            });
-        } else {
-            // Desktop: Normal print dialog
-            window.print();
-            setTimeout(() => {
-                if(bodyClass) document.body.classList.remove(bodyClass);
-            }, 1000);
-        }
-    }
-
     document.body.classList.add('print-active-arrears');
     triggerPrint('printableArrearsListArea', 'Arrears_List', 'print-active-arrears');
 }
