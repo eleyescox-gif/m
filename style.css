@@ -978,7 +978,7 @@ textarea.form-control {
     width: 100vw;
     height: 100vh;
     background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
-    z-index: 999;
+    z-index: 99999;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1194,7 +1194,8 @@ textarea.form-control {
     /* Only show the targeted print area based on the active body class */
     body.print-active-member #printableMemberReceiptArea,
     body.print-active-inst #printableInstitutionReceiptArea,
-    body.print-active-arrears #printableArrearsListArea {
+    body.print-active-arrears #printableArrearsListArea,
+    body.print-active-full #printableFullInstitutionReceiptArea {
         display: block !important;
     }
 

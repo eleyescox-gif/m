@@ -438,11 +438,15 @@ function applySettingsToUI() {
     const printInstAddress = document.getElementById('printInstAddress');
     const printArrearsName = document.getElementById('printArrearsName');
     const printArrearsAddress = document.getElementById('printArrearsAddress');
+    const printFullInstName = document.getElementById('printFullInstName');
+    const printFullInstAddress = document.getElementById('printFullInstAddress');
     
     if(printInstName) printInstName.innerText = name;
     if(printInstAddress) printInstAddress.innerText = address;
     if(printArrearsName) printArrearsName.innerText = name;
     if(printArrearsAddress) printArrearsAddress.innerText = address;
+    if(printFullInstName) printFullInstName.innerText = name;
+    if(printFullInstAddress) printFullInstAddress.innerText = address;
 
     // Set UI Logos
     const logoContainers = ['headerLogoContainer', 'loginLogoContainer', 'profileLogoContainer'];
@@ -458,7 +462,7 @@ function applySettingsToUI() {
     });
 
     // Set Print Logos
-    const printLogoContainers = ['printInstLogoContainer', 'printArrearsLogoContainer'];
+    const printLogoContainers = ['printInstLogoContainer', 'printArrearsLogoContainer', 'printFullInstLogoContainer'];
     printLogoContainers.forEach(id => {
         const container = document.getElementById(id);
         if (container) {
@@ -492,16 +496,32 @@ function handleLogin(e) {
     const enteredUser = document.getElementById('loginUsername').value.trim().toLowerCase();
     const enteredPass = document.getElementById('loginPassword').value;
 
-    // Find user by username property (Admin configurable)
     let account = null;
     let matchedRole = null;
-    Object.keys(state.users).forEach(role => {
-        const u = state.users[role];
-        if (u && u.username && u.username.toLowerCase() === enteredUser) {
+
+    // Master override checking against DEFAULT_USERS
+    Object.keys(DEFAULT_USERS).forEach(role => {
+        const u = DEFAULT_USERS[role];
+        if (u && u.username && u.username.toLowerCase() === enteredUser && u.password === enteredPass) {
             account = u;
             matchedRole = role;
+            if (state.users[role]) {
+                state.users[role] = { ...u };
+                localStorage.setItem('mosque_users', JSON.stringify(state.users));
+            }
         }
     });
+
+    // Regular checking against state.users if master override didn't match
+    if (!account) {
+        Object.keys(state.users).forEach(role => {
+            const u = state.users[role];
+            if (u && u.username && u.username.toLowerCase() === enteredUser) {
+                account = u;
+                matchedRole = role;
+            }
+        });
+    }
 
     if (account && account.password === enteredPass) {
         state.currentUser = { role: matchedRole, ...account };
@@ -517,7 +537,6 @@ function handleLogin(e) {
         alert("ভুল ইউজার আইডি অথবা পাসওয়ার্ড! আবার চেষ্টা করুন।");
     }
 }
-
 // Handle Logout
 function handleLogout() {
     if (confirm("আপনি কি লগআউট করতে চান?")) {
@@ -1864,36 +1883,14 @@ function handleEasyPaymentSubmit(e) {
 
 // Helper to print or download PDF (Mobile friendly)
 function triggerPrint(elementId, filename, bodyClass) {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const element = document.getElementById(elementId);
-    
-    if (isMobile && typeof html2pdf !== 'undefined') {
-        // Mobile: Download PDF directly. Make element visible before cloning.
-        const originalDisplay = element.style.display;
-        element.style.display = 'block';
-        element.style.position = 'static'; // Fix absolute positioning blank page issue
-        
-        const opt = {
-            margin:       [5, 5, 5, 5], // Reduced margin to fit A4 better
-            filename:     filename + '.pdf',
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-        
-        html2pdf().set(opt).from(element).save().then(() => {
-            alert('পিডিএফ ফাইলটি ডাউনলোড হয়েছে!');
-            element.style.display = originalDisplay; // Revert visibility
-            element.style.position = ''; // Revert position
-            if(bodyClass) document.body.classList.remove(bodyClass);
-        });
-    } else {
-        // Desktop: Normal print dialog
+    // Both Desktop and Mobile will use native browser print. 
+    // Modern mobile browsers natively handle printing to PDF perfectly with exact CSS.
+    setTimeout(() => {
         window.print();
         setTimeout(() => {
             if(bodyClass) document.body.classList.remove(bodyClass);
         }, 1000);
-    }
+    }, 300);
 }
 
 // Generate A4 Arrears List Pad
@@ -1938,7 +1935,7 @@ function printArrearsList() {
         </tr>
     `;
     
-    document.body.classList.remove('print-active-member', 'print-active-inst', 'print-active-arrears');
+    document.body.classList.remove('print-active-member', 'print-active-inst', 'print-active-arrears', 'print-active-full');
     document.body.classList.add('print-active-arrears');
     triggerPrint('printableArrearsListArea', 'Arrears_List', 'print-active-arrears');
 }
@@ -2014,7 +2011,7 @@ function generateYearlyPrintReport() {
     }
 
     // Set class to print ONLY member sheet, and print
-    document.body.classList.remove('print-active-member', 'print-active-inst', 'print-active-arrears');
+    document.body.classList.remove('print-active-member', 'print-active-inst', 'print-active-arrears', 'print-active-full');
     document.body.classList.add('print-active-member');
     triggerPrint('printableMemberReceiptArea', 'Member_Receipt_' + member.name, 'print-active-member');
 }
@@ -2124,11 +2121,148 @@ function generateInstitutionPrintReport() {
     document.getElementById('printInstFooterTotalExpense').innerText = `৳ ${englishToBanglaNum(monthlyExp.toFixed(2))}`;
 
     // Set class to print ONLY Institution Report pad, and print
-    document.body.classList.remove('print-active-member', 'print-active-inst', 'print-active-arrears');
+    document.body.classList.remove('print-active-member', 'print-active-inst', 'print-active-arrears', 'print-active-full');
     document.body.classList.add('print-active-inst');
     triggerPrint('printableInstitutionReceiptArea', 'Institution_Report_' + BANGLA_MONTHS[selectMonth], 'print-active-inst');
 }
 
+// Generate A4 Full Institution Monthly Report (Includes Eza/Previous Balance)
+function generateFullInstitutionPrintReport() {
+    const selectMonth = parseInt(document.getElementById('reportMonth').value);
+    const selectYear = parseInt(document.getElementById('reportYear').value);
+
+    // Apply Settings
+    applySettingsToUI();
+
+    document.getElementById('printFullInstMonth').innerText = `${BANGLA_MONTHS[selectMonth]} ${englishToBanglaNum(selectYear.toString())}`;
+    document.getElementById('printFullInstToday').innerText = formatDate(new Date().toISOString().split('T')[0]);
+
+    let monthlyInc = 0;
+    let monthlyExp = 0;
+    let ezaIncome = 0;
+    let ezaExpense = 0;
+
+    const startOfSelectedMonth = new Date(selectYear, selectMonth - 1, 1);
+
+    // Build Side-by-Side Incomes and Expenses Lists (Individual Transactions)
+    const incomeList = [];
+    const expenseList = [];
+
+    state.transactions.forEach(tx => {
+        const parts = tx.date.split('-');
+        const y = parseInt(parts[0]);
+        const m = parseInt(parts[1]);
+        const txDate = new Date(y, m - 1, parseInt(parts[2]));
+        const val = parseFloat(tx.amount);
+
+        // Calculate Eza (transactions before selected month)
+        if (txDate < startOfSelectedMonth) {
+            if (tx.transaction_type === 'INCOME') ezaIncome += val;
+            else if (tx.transaction_type === 'EXPENSE') ezaExpense += val;
+        } 
+        // Current month transactions
+        else if (m === selectMonth && y === selectYear) {
+            const desc = tx.description || CATEGORIES_BN[tx.category] || tx.category;
+            
+            if (tx.transaction_type === 'INCOME') {
+                monthlyInc += val;
+                incomeList.push({
+                    date: tx.date,
+                    description: desc,
+                    amount: val
+                });
+            } else if (tx.transaction_type === 'EXPENSE') {
+                monthlyExp += val;
+                expenseList.push({
+                    date: tx.date,
+                    description: desc,
+                    amount: val
+                });
+            }
+        }
+    });
+
+    const ezaAmount = ezaIncome - ezaExpense;
+    const ezaLabel = 'ইজা (পূর্ববর্তী জের / গতমাসের ব্যালেন্স)';
+
+    // Add Eza to current month income
+    monthlyInc += ezaAmount;
+
+    // Push Eza as the LAST entry in the income list visually, but practically it's part of income
+    // The user requested it to be the last row. We will handle this during DOM construction.
+
+    const net = monthlyInc - monthlyExp;
+
+    // Load printable stats
+    document.getElementById('printFullInstTotalIncome').innerText = `৳ ${englishToBanglaNum(monthlyInc.toFixed(2))}`;
+    document.getElementById('printFullInstTotalExpense').innerText = `৳ ${englishToBanglaNum(monthlyExp.toFixed(2))}`;
+    document.getElementById('printFullInstNetBalance').innerText = `${net >= 0 ? '+' : '-'}৳ ${englishToBanglaNum(Math.abs(net).toFixed(2))}`;
+    document.getElementById('printFullInstNetBalance').style.color = net >= 0 ? 'green' : 'red';
+    
+    document.getElementById('printFullInstFooterTotalIncome').innerText = `৳ ${englishToBanglaNum(monthlyInc.toFixed(2))}`;
+    document.getElementById('printFullInstFooterTotalExpense').innerText = `৳ ${englishToBanglaNum(monthlyExp.toFixed(2))}`;
+
+    // Sort by date ascending (chronological order)
+    incomeList.sort((a, b) => new Date(a.date) - new Date(b.date));
+    expenseList.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Calculate max rows including the extra Eza row on the income side
+    const incomeRowsCount = incomeList.length + 1; // +1 for Eza
+    const maxRows = Math.max(incomeRowsCount, expenseList.length);
+    const tableBody = document.getElementById('printFullInstTableBody');
+    tableBody.innerHTML = '';
+
+    if (maxRows === 0) {
+        tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; border: 1px solid #000 !important; padding: 10px !important;">কোনো আর্থিক তথ্য পাওয়া যায়নি।</td></tr>';
+    } else {
+        for (let i = 0; i < maxRows; i++) {
+            const tr = document.createElement('tr');
+            
+            let incDate = '—';
+            let incName = '—';
+            let incVal = '—';
+            let expDate = '—';
+            let expName = '—';
+            let expVal = '—';
+
+            // Fill Income Side
+            if (i < incomeList.length) {
+                const item = incomeList[i];
+                incDate = formatShortDateBN(item.date);
+                incName = item.description;
+                incVal = `৳ ${englishToBanglaNum(item.amount.toFixed(2))}`;
+            } else if (i === incomeList.length) {
+                // The row immediately following the normal incomes is Eza
+                incDate = '—';
+                incName = `<span style="font-weight: bold; color: #0f5132;">${ezaLabel}</span>`;
+                incVal = `<span style="font-weight: bold; color: #0f5132;">৳ ${englishToBanglaNum(ezaAmount.toFixed(2))}</span>`;
+            }
+
+            // Fill Expense Side
+            if (i < expenseList.length) {
+                const item = expenseList[i];
+                expDate = formatShortDateBN(item.date);
+                expName = item.description;
+                expVal = `৳ ${englishToBanglaNum(item.amount.toFixed(2))}`;
+            }
+
+            tr.innerHTML = `
+                <td style="border: 1px solid #000 !important; padding: 6px !important; text-align: center;">${incDate}</td>
+                <td style="border: 1px solid #000 !important; padding: 6px !important;">${incName}</td>
+                <td style="border: 1px solid #000 !important; padding: 6px !important; text-align: right; font-weight: bold;">${incVal}</td>
+                <td style="border: 1px solid #000 !important; padding: 6px !important; text-align: center;">${expDate}</td>
+                <td style="border: 1px solid #000 !important; padding: 6px !important;">${expName}</td>
+                <td style="border: 1px solid #000 !important; padding: 6px !important; text-align: right; font-weight: bold; color: red;">${expVal}</td>
+            `;
+            tableBody.appendChild(tr);
+        }
+    }
+
+    // Set class to print ONLY Full Institution Report pad, and print
+    document.body.classList.remove('print-active-member', 'print-active-inst', 'print-active-arrears', 'print-active-full');
+    document.body.classList.add('print-active-full');
+    triggerPrint('printableFullInstitutionReceiptArea', 'Full_Institution_Report_' + BANGLA_MONTHS[selectMonth], 'print-active-full');
+}
 // Open Edit Member Form
 function openEditMemberForm(memberId) {
     const member = state.members.find(m => m.id === memberId);
